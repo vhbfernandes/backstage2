@@ -1282,10 +1282,10 @@ class Grid {
 		
 		if ($CFG->backstage_mode && (User::permission(0,0,$this->link_url,false,$this->is_tab) > 1) && $this->inset_id === false) {
 			echo "</form>";
-			
-			if (!($this->inset_id > 0 || $CFG->is_form_inset))
-				echo '</div></div>';
 		}
+		
+		if (!($this->inset_id > 0 || $CFG->is_form_inset))
+			echo '</div></div>';
 	}
 	
 	function show_filters() {
