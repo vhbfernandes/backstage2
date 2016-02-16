@@ -954,7 +954,7 @@ class DB {
 				}
 			}
 		}
-		if ($tokenizers) {
+		if ($tokenizers && !strstr($table,'_files')) {
 			foreach ($tokenizers as $f_name => $values) {
 				$sql = 'SELECT * FROM '.$table.'_'.$f_name.'_relations WHERE f_id = '.$id;
 				$result = db_query_array($sql);
