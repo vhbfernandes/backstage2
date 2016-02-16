@@ -1627,11 +1627,13 @@ class Grid {
 			return false;
 		
 		$results = array();
-		foreach ($this->filter_results as $f_name => $f_value) {
-			if (!empty($this->filters[$f_name]))
-				$results[$f_name] = $this->filters[$f_name];
-			
-			$results[$f_name]['results'] = $f_value;
+		if (is_array($this->filter_results)) {
+			foreach ($this->filter_results as $f_name => $f_value) {
+				if (!empty($this->filters[$f_name]))
+					$results[$f_name] = $this->filters[$f_name];
+				
+				$results[$f_name]['results'] = $f_value;
+			}
 		}
 		
 		return $results;
