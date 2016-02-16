@@ -128,6 +128,8 @@ class File {
 	}
 	
 	function deleteLike($search,$dir) {
+		global $CFG;
+		
 		if (!$search || !$dir)
 			return false;
 		
@@ -136,7 +138,7 @@ class File {
 		if ($matches) {
 			foreach ($matches as $file) {
 				$url = File::fileExists($file,$dir);
-				if ($url) unlink($url);
+				if ($url) unlink($CFG->dirroot.rtrim($dir,'/').'/'.$file);
 			}
 		}
 	}
