@@ -1254,7 +1254,7 @@ class Form {
 			$selected_index = ($options_array_is_subtable) ? $value : $selected_index;
 		}
 		else {
-			if ($value && strstr($value,'array:')) {
+			if (!$is_tokenizer || strstr($value,'array:')) {
 				$value1 = (is_array(@unserialize($value))) ? @unserialize($value) : $value;
 				if (is_array($value1)) {
 					$selected_index = implode(', ',$value1);
