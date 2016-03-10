@@ -141,6 +141,9 @@ class DB {
 					}
 				}
 				elseif ($has_subtable || $has_table) {
+					if (is_array(json_decode(urldecode($field['subtable_fields']),true)))
+						$field['subtable_fields'] = json_decode(urldecode($field['subtable_fields']),true);
+
 					$subtable_fields = (!is_array($field['subtable_fields']) && !empty($field['subtable_fields'])) ? array($field['subtable_fields']) : $field['subtable_fields'];
 					$concat_char = (!empty($field['subtable_fields_concat'])) ? $field['subtable_fields_concat'] : ' ';
 					$concat_char = (!$subtable_fields) ? '|||' : $concat_char;
