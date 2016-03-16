@@ -44,6 +44,9 @@ class Upload {
 			$file_parts = explode('.',$temp_name);
 			$ext = strtolower(end($file_parts));
 			
+			if (!empty($_REQUEST['tokenizers']))
+				unset($_REQUEST['tokenizers']);
+			
 			DB::saveImageSizes($field_name,$_REQUEST['image_sizes'][$field_name]);
 			$image_sizes = DB::getImageSizes($field_name);
 			

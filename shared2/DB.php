@@ -141,6 +141,9 @@ class DB {
 					}
 				}
 				elseif ($has_subtable || $has_table) {
+					if (is_array(json_decode(urldecode($field['subtable_fields']),true)))
+						$field['subtable_fields'] = json_decode(urldecode($field['subtable_fields']),true);
+
 					$subtable_fields = (!is_array($field['subtable_fields']) && !empty($field['subtable_fields'])) ? array($field['subtable_fields']) : $field['subtable_fields'];
 					$concat_char = (!empty($field['subtable_fields_concat'])) ? $field['subtable_fields_concat'] : ' ';
 					$concat_char = (!$subtable_fields) ? '|||' : $concat_char;
@@ -809,11 +812,17 @@ class DB {
 				unset($fields_array[$name]);
 			}
 		}
-
+		
 		$fields_array = self::serializeMultiples($fields_array,$table);
+		$tokenizers = array();
 		if (is_array($_REQUEST['tokenizers'])) {
 			foreach ($_REQUEST['tokenizers'] as $name) {
-				$fields_array[$name] = serialize($fields_array[$name]);
+				if (is_array($fields_array[$name]))
+					$fields_array[$name] = serialize($fields_array[$name]);
+				else {
+					$tokenizers[$name] = json_decode($fields_array[$name],true);
+					unset($fields_array[$name]);
+				}
 			}
 		}
 		
@@ -856,6 +865,28 @@ class DB {
 				}
 			}
 		}
+		if ($tokenizers) {
+			foreach ($tokenizers as $f_name => $values) {
+				$sql = 'SELECT * FROM '.$table.'_'.$f_name.'_relations WHERE f_id = '.$insert_id;
+				$result = db_query_array($sql);
+				
+				if (is_array($values)) {
+					if ($result) {
+						foreach ($result as $row) {
+							if (empty($values[$row['value']])) {
+								$sql = 'DELETE FROM '.$table.'_'.$f_name.'_relations WHERE value = '.$row['value'].' AND f_id = '.$insert_id;
+								db_query($sql);
+							}
+						}
+					}
+					
+					foreach ($values as $k => $v) {
+						db_insert($table.'_'.$f_name.'_relations',array('f_id'=>$insert_id,'value'=>$k,'label'=>$v));
+					}
+				}	
+			}
+		}
+		
 		return $insert_id;
 	}
 	
@@ -877,19 +908,21 @@ class DB {
 			}
 		}
 		$fields_array = self::serializeMultiples($fields_array);
-		
+		$tokenizers = array();
 		if (is_array($_REQUEST['tokenizers'])) {
 			foreach ($_REQUEST['tokenizers'] as $name) {
-				$fields_array[$name] = serialize($fields_array[$name]);
+				if (is_array($fields_array[$name]))
+					$fields_array[$name] = serialize($fields_array[$name]);
+				else {
+					$tokenizers[$name] = json_decode(rawurldecode($fields_array[$name]),true);
+					unset($fields_array[$name]);
+				}
 			}
 		}
-
 		if (!$CFG->backstage_mode)
 			$fields_array = array_map('mysql_real_escape_string',$fields_array);
-
 			
 		$num_affected = db_update($table,$id,$fields_array);
-
 		if ($cats_array) {
 			foreach ($cats_array as $subtable => $cat) {
 				if ($_REQUEST['cat_selects'][$subtable]) {
@@ -921,6 +954,27 @@ class DB {
 				foreach ($row as $values) {
 					$values['f_id'] = $id;
 					db_insert($table.'_grid_'.$name,$values);
+				}
+			}
+		}
+		if ($tokenizers && !strstr($table,'_files')) {
+			foreach ($tokenizers as $f_name => $values) {
+				$sql = 'SELECT * FROM '.$table.'_'.$f_name.'_relations WHERE f_id = '.$id;
+				$result = db_query_array($sql);
+		
+				if (is_array($values)) {
+					if ($result) {
+						foreach ($result as $row) {
+							if (empty($values[$row['value']])) {
+								$sql = 'DELETE FROM '.$table.'_'.$f_name.'_relations WHERE value = '.$row['value'].' AND f_id = '.$id;
+								db_query($sql);
+							}
+						}
+					}
+						
+					foreach ($values as $k => $v) {
+						db_insert($table.'_'.$f_name.'_relations',array('f_id'=>$id,'value'=>$k,'label'=>$v));
+					}
 				}
 			}
 		}
@@ -1057,6 +1111,11 @@ class DB {
 		return $subtables;
 	}
 	
+	public static function getTableValues($table,$f_id=false) {
+		$sql = 'SELECT * FROM '.$table.' WHERE f_id = '.$f_id;
+		return db_query_array($sql);
+	}
+	
 	public static function createTable($table,$fields_array,$enum_fields=false,$ignore_fields=false) {
 		if (empty($table) || !is_array($fields_array))
 			return false;
@@ -1167,6 +1226,15 @@ class DB {
 								INDEX ( `f_id`)
 								) ENGINE = MYISAM ";
 						break;
+					case 'autocomplete-multi':
+						$sql6 = "CREATE TABLE `{$table}_{$field}_relations` (
+								id INT( 10 ) UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY ,
+								`f_id` INT( 10 ) UNSIGNED NOT NULL ,
+								`value` VARCHAR( 255 ) NOT NULL,
+								`label` VARCHAR( 255 ) NOT NULL,
+								INDEX ( `f_id`)
+								) ENGINE = MYISAM ";
+						break;
 				}
 			}
 		}
@@ -1188,6 +1256,12 @@ class DB {
 				$files = db_query($sql4);
 			}
 		}
+		if ($sql6) {
+			if (!self::tableExists("{$table}_{$field}_relations")) {
+				db_query($sql6);
+			}
+		}
+		
 		return db_query($sql);
 	}
 	
@@ -1199,7 +1273,7 @@ class DB {
 		
 		if (!is_array($table_fields) || !is_array($fields_array))
 			return false;
-			
+		
 		foreach ($fields_array as $field => $type) {
 			if (stristr($type,'||')) {
 				$type1 = explode('||',$type);
@@ -1314,6 +1388,15 @@ class DB {
 									INDEX ( `f_id`)
 									) ENGINE = MYISAM ";
 							break;
+						case 'autocomplete-multi':
+							$sql6 = "CREATE TABLE `{$table}_{$field}_relations` (
+							id INT( 10 ) UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY ,
+							`f_id` INT( 10 ) UNSIGNED NOT NULL ,
+							`value` VARCHAR( 255 ) NOT NULL,
+							`label` VARCHAR( 255 ) NOT NULL,
+							INDEX ( `f_id`)
+							) ENGINE = MYISAM ";
+							break;
 					}
 				}
 			}
@@ -1339,10 +1422,17 @@ class DB {
 				db_query("ALTER TABLE {$table} ADD $sql");
 			}
 		
+			if ($sql6) {
+				if (!self::tableExists("{$table}_{$field}_relations")) {
+					db_query($sql6);
+				}
+			}
+			
 			unset($sql);
 			unset($sql2);
 			unset($sql3);
 			unset($sql4);
+			unset($sql6);
 			unset($add);
 		}
 

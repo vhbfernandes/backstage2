@@ -1217,6 +1217,8 @@ class Form {
 			if ($this->table) {
 				if (!$multiple || $list_field_values)
 					$this->db_fields[$name] = (!$subtable || $list_field_values) ? 'vchar' : 'int';
+				elseif ($multiple)
+					$this->db_fields[$name] = 'autocomplete-multi';
 				elseif ($options_array_is_subtable)
 					$this->db_fields[$name] = 'vchar';
 				else
@@ -1252,20 +1254,44 @@ class Form {
 			$selected_index = ($options_array_is_subtable) ? $value : $selected_index;
 		}
 		else {
-			$value1 = (is_array(@unserialize($value))) ? @unserialize($value) : $value;
-			if (is_array($value1)) {
-				$selected_index = implode(', ',$value1);
-				$tokenizer_values = $value1;
-				unset($value);
-				
-				$value2 = array();
-				foreach ($value1 as $k => $v) {
-					$value2[] = $k.'|'.$v;
+			if (!$is_tokenizer || strstr($value,'array:')) {
+				$value1 = (is_array(@unserialize($value))) ? @unserialize($value) : $value;
+				if (is_array($value1)) {
+					$selected_index = implode(', ',$value1);
+					$tokenizer_values = $value1;
+					unset($value);
+					
+					$value2 = array();
+					foreach ($value1 as $k => $v) {
+						$value2[] = $k.'|'.$v;
+					}
+					$value = 'array:'.implode('|||',$value2);
 				}
-				$value = 'array:'.implode('|||',$value2);
+				elseif (strlen($value1) > 0) {
+					$tokenizer_values = String::unFaux($value1);
+				}
 			}
-			elseif (strlen($value1) > 0) {
-				$tokenizer_values = String::unFaux($value1);
+			else {
+				if ($this->table && $this->record_id) {
+					if (!$value) {
+						$values = DB::getTableValues($this->table.'_'.$name.'_relations',$this->record_id);
+						$values_arr = array();
+						if ($values) {
+							foreach ($values as $val) {
+								$values_arr[$val['value']] = $val['label'];
+							}
+							
+							$selected_index = implode(', ',$values_arr);
+							$value = rawurlencode(json_encode($values_arr));
+							$tokenizer_values = $values_arr;
+						}
+					}
+					else {
+						$values = json_decode(urldecode($value),true);
+						$selected_index = implode(', ',$values);
+						$tokenizer_values = $values;
+					}
+				}
 			}
 		}
 		
@@ -1392,21 +1418,47 @@ class Form {
 					}
 					else {
 						$HTML .= '
-						var value1 = $("#'.$this->name.'_'.$id.$j.'").attr("value").replace("array:","");
-						var value1 = (value1.length > 0) ? "array:" + value1 + "|||" + ui.item.value + "|" + ui.item.label : "array:" + ui.item.value + "|" + ui.item.label;
-						var label1 = $("#'.$this->name.'_'.$id.$j.'_dummy").attr("value");
-						label2 = label1.split(",");
-						label2.pop();
-						label1 = label2.join(",");
-						label1 = ((label1.length > 0) ? label1 + "," : "") + ui.item.label + ",";
-						'.(($is_tokenizer) ? '
-							$("'.$a_field.'").before(\'<div class="token"><span>\'+ui.item.label+\'</span><input type="hidden" id="d0" value="\'+value1+\'"/><div class="x"  onclick="removeThis(this)">x</div></div>\');
-							$("'.$a_field.'").attr("value","");
-							$("#'.$this->name.'_'.$id.$j.'").attr("value",value1);
-						' : '
-							$("#'.$this->name.'_'.$id.$j.'").attr("value",value1);
-							$("#'.$this->name.'_'.$id.$j.'_dummy").attr("value",label1);
-						' ).'
+						var value1 = $("#'.$this->name.'_'.$id.$j.'").attr("value");
+						if (value1.indexOf("array:") >= 0) {
+							value1 = value1.replace("array:","");
+							value1 = (value1.length > 0) ? "array:" + value1 + "|||" + ui.item.value + "|" + ui.item.label : "array:" + ui.item.value + "|" + ui.item.label;
+							var label1 = $("#'.$this->name.'_'.$id.$j.'_dummy").attr("value");
+							label2 = label1.split(",");
+							label2.pop();
+							label1 = label2.join(",");
+							label1 = ((label1.length > 0) ? label1 + "," : "") + ui.item.label + ",";
+							'.(($is_tokenizer) ? '
+								$("'.$a_field.'").before(\'<div class="token"><span>\'+ui.item.label+\'</span><input type="hidden" id="d0" value="\'+value1+\'"/><div class="x"  onclick="removeThis(this)">x</div></div>\');
+								$("'.$a_field.'").attr("value","");
+								$("#'.$this->name.'_'.$id.$j.'").attr("value",value1);
+							' : '
+								$("#'.$this->name.'_'.$id.$j.'").attr("value",value1);
+								$("#'.$this->name.'_'.$id.$j.'_dummy").attr("value",label1);
+							' ).'
+						}
+						else {
+							var is_json = true;
+							try {
+						        JSON.parse(decodeURIComponent(value1));
+						    } catch (e) {
+						        is_json = false;
+						    }
+							
+							var options = (is_json) ? JSON.parse(decodeURIComponent(value1)) : {};
+							options[ui.item.value] = ui.item.label;
+							var values = [];
+							for (i in options)
+								values.push(options[i]);
+								
+							'.(($is_tokenizer) ? '
+								$("'.$a_field.'").before(\'<div class="token"><span>\'+ui.item.label+\'</span><input type="hidden" id="d0" value="\'+ui.item.value+\'"/><div class="x" onclick="removeToken(this)">x</div></div>\');
+								$("'.$a_field.'").val("");
+								$("#'.$this->name.'_'.$id.$j.'").attr("value",encodeURIComponent(JSON.stringify(options)));
+							' : '
+								$("#'.$this->name.'_'.$id.$j.'").attr("value",encodeURIComponent(JSON.stringify(options)));
+								$("#'.$this->name.'_'.$id.$j.'_dummy").attr("value",values.join(","));
+							' ).'
+						}
 						return false;';
 					}
 					$HTML .= '
