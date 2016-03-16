@@ -71,19 +71,24 @@ class Form {
 							unset($this->info[$key.'_m']);
 							unset($this->info[$key.'_ampm']);
 						}
-						if (!empty($value))
-							$this->info[$key] = date('Y-m-d H:i:00', strtotime($this->info[$key]));
+						
+						if (!empty($value)) {
+							if ($CFG->default_date_format && $CFG->default_date_format[0] != 'n' && $CFG->default_date_format[0] != 'm')
+								$this->info[$key] = date('Y-m-d H:i:00', strtotime(str_replace('/','-',$this->info[$key])));
+							else
+								$this->info[$key] = date('Y-m-d H:i:00', strtotime($this->info[$key]));
+						}
 						else
 							$this->info[$key] = false;
 							
-							if (@array_key_exists($key, $_REQUEST['timefields'])) {
-								$key1 = $_REQUEST['timefields'];
-								if (!empty($this->info[$key1])) {
-									$v1 = date('Y-m-d', strtotime($this->info[$key1]));
-									$v2 = date('H:i:00', strtotime($this->info[$key]));
-									$this->info[$key] = date('Y-m-d H:i:00', strtotime($v1.' '.$v2));
-								}
+						if (@array_key_exists($key, $_REQUEST['timefields'])) {
+							$key1 = $_REQUEST['timefields'];
+							if (!empty($this->info[$key1])) {
+								$v1 = date('Y-m-d', strtotime($this->info[$key1]));
+								$v2 = date('H:i:00', strtotime($this->info[$key]));
+								$this->info[$key] = date('Y-m-d H:i:00', strtotime($v1.' '.$v2));
 							}
+						}
 					}
 				}
 			}
@@ -1660,7 +1665,7 @@ class Form {
 			$HTML.='$("#'.$this->name.'_'.$id.'").datepicker({ 
 						showAnim: "fadeIn",
 					    showOn: "both", 
-					    buttonImage: "'.$CFG->date_picker_icon.'",
+					    buttonImage: "images/date_picker.gif",
 					    showButtonPanel: true,
 					    defaultDate: new Date('.$value_in.'),
 					    '.(($req_start) ? "minDate: new Date($req_start)," : '').'
@@ -1737,7 +1742,7 @@ class Form {
 			
 			$this->db_fields[$name.'_interval'] = 'vchar';
 		}
-		
+
 		$HTML .= "<input type=\"hidden\" name=\"datefields[$name]\" value=\"$is_filter_range_end\" />";
 		
 		if ($only_time && $link_to)

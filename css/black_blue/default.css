@@ -199,11 +199,11 @@ iframe{}
 .form .file_label{float:left;margin:3px 5px;position:relative;top:1px;width:auto;}
 .form .disabled{color:#666;}
 .form select {font-family: trebuchet MS,tahoma;font-size:13px;background-color:#FFF;border:1px solid #B6B6B6;color:#444;margin-left:255px;padding:4px 3px;width:250px;margin:4px;}
-.form select.time_hour{margin-left:20px;width:43px;}
+.form select.time_hour{width:45px;}
 .form select.interval{margin-left:20px;width:130px;}
 .form select.only{margin-left:4px;}
-.form select.time_minute{margin-left:0;margin-right: 0;width:43px;}
-.form select.time_ampm{margin-left:0;width:46px;}
+.form select.time_minute{margin-left:0;margin-right: 0;width:45px;}
+.form select.time_ampm{margin-left:0;width:50px;}
 .form img{}
 .form ul li a { text-decoration:underline !important; }
 .form b {font-weight:normal;display: block;float: left;left: 0; padding: 10px 0 10px 20px; position: relative; width:180px;background-color: #E9F0F4;}
