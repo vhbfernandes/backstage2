@@ -871,7 +871,7 @@ class Form {
 		}
 		else if ($subtable) {
 			$db_output = DB::getSubTable($subtable,$subtable_fields,$subtable_f_id,false,$f_id_field);
-			if (in_array('p_id',$subtable_fields))
+			if (is_array($subtable_fields) && in_array('p_id',$subtable_fields))
 				$db_output = DB::sortCats($db_output,0,1,$level);
 
 			if ($db_output) {
@@ -1260,20 +1260,27 @@ class Form {
 		}
 		else {
 			if (!$is_tokenizer || strstr($value,'array:')) {
-				$value1 = (is_array(@unserialize($value))) ? @unserialize($value) : $value;
-				if (is_array($value1)) {
-					$selected_index = implode(', ',$value1);
-					$tokenizer_values = $value1;
-					unset($value);
-					
-					$value2 = array();
-					foreach ($value1 as $k => $v) {
-						$value2[] = $k.'|'.$v;
+				if (strstr($value,'array:')) {
+					$value1 = (is_array(@unserialize($value))) ? @unserialize($value) : $value;
+					if (is_array($value1)) {
+						$selected_index = implode(', ',$value1);
+						$tokenizer_values = $value1;
+						unset($value);
+						
+						$value2 = array();
+						foreach ($value1 as $k => $v) {
+							$value2[] = $k.'|'.$v;
+						}
+						$value = 'array:'.implode('|||',$value2);
 					}
-					$value = 'array:'.implode('|||',$value2);
+					elseif (strlen($value1) > 0) {
+						$tokenizer_values = String::unFaux($value1);
+					}
 				}
-				elseif (strlen($value1) > 0) {
-					$tokenizer_values = String::unFaux($value1);
+				else {
+					$values = json_decode(urldecode($value),true);
+					$selected_index = implode(', ',$values);
+					$tokenizer_values = $values;
 				}
 			}
 			else {
@@ -1365,7 +1372,7 @@ class Form {
 			}
 			
 			$HTML .= '
-			$().ready(function() {
+			$(document).ready(function() {
 				$("'.$a_field.'").autocomplete({
 					minChars: 1,
 					autoFocus: true,

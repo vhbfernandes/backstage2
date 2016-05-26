@@ -83,13 +83,14 @@ function checkEmpty(elem,multiple,hidden_elem_id,run,is_tokenizer) {
 					i++;
 				}
 			}
-			console.log($(hidden_elem).attr('id'));
+
 			if (new_values.length > 0) {
 				var new_string = 'array:' + new_values.join('|||');
 				$(hidden_elem).attr('value',new_string);
 			}
 			else {
-				$(hidden_elem).attr('value','');
+				if ($(elem).attr('value').length == 0)
+					$(hidden_elem).attr('value','');
 			}
 		}
 	}
