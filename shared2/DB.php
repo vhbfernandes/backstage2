@@ -881,7 +881,7 @@ class DB {
 					}
 					
 					foreach ($values as $k => $v) {
-						db_insert($table.'_'.$f_name.'_relations',array('f_id'=>$insert_id,'value'=>$k,'label'=>$v));
+						db_insert($table.'_'.$f_name.'_relations',array('f_id'=>$insert_id,'value'=>$k,'label'=>$v),false,false,false,false,false,true);
 					}
 				}	
 			}
@@ -973,7 +973,7 @@ class DB {
 					}
 						
 					foreach ($values as $k => $v) {
-						db_insert($table.'_'.$f_name.'_relations',array('f_id'=>$id,'value'=>$k,'label'=>$v));
+						db_insert($table.'_'.$f_name.'_relations',array('f_id'=>$insert_id,'value'=>$k,'label'=>$v),false,false,false,false,false,true);
 					}
 				}
 			}
@@ -1232,7 +1232,8 @@ class DB {
 								`f_id` INT( 10 ) UNSIGNED NOT NULL ,
 								`value` VARCHAR( 255 ) NOT NULL,
 								`label` VARCHAR( 255 ) NOT NULL,
-								INDEX ( `f_id`)
+								INDEX ( `f_id`),
+								UNIQUE (`f_id`,`value`)
 								) ENGINE = MYISAM ";
 						break;
 				}
@@ -1394,7 +1395,8 @@ class DB {
 							`f_id` INT( 10 ) UNSIGNED NOT NULL ,
 							`value` VARCHAR( 255 ) NOT NULL,
 							`label` VARCHAR( 255 ) NOT NULL,
-							INDEX ( `f_id`)
+							INDEX (`f_id`),
+							UNIQUE (`f_id`,`value`)
 							) ENGINE = MYISAM ";
 							break;
 					}
