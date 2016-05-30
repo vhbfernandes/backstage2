@@ -83,13 +83,14 @@ function checkEmpty(elem,multiple,hidden_elem_id,run,is_tokenizer) {
 					i++;
 				}
 			}
-			console.log($(hidden_elem).attr('id'));
+
 			if (new_values.length > 0) {
 				var new_string = 'array:' + new_values.join('|||');
 				$(hidden_elem).attr('value',new_string);
 			}
 			else {
-				$(hidden_elem).attr('value','');
+				if ($(elem).attr('value').length == 0)
+					$(hidden_elem).attr('value','');
 			}
 		}
 	}
@@ -118,6 +119,24 @@ function removeThis(elem) {
 		$(elem).parent().remove();
 		checkEmpty(parent,1,hidden_elem_id,1,1);
 	});
+}
+function removeToken(elem) {
+	var this_value = $(elem).siblings('#d0').val();
+	var values = $(elem).parents('.tokenizer').siblings('.autocomplete_hidden').val();
+	var is_json = true;
+	
+	try {
+        JSON.parse(decodeURIComponent(values));
+    } catch (e) {
+        is_json = false;
+    }
+	
+	var options = (is_json) ? JSON.parse(decodeURIComponent(values)) : {};
+	if (typeof options[this_value] != 'undefined')
+		delete options[this_value];
+	
+	$(elem).parents('.tokenizer').siblings('.autocomplete_hidden').val(encodeURIComponent(JSON.stringify(options)));
+	$(elem).parents('.token').remove();
 }
 
 function saveForm(elem,refresh_elem,refresh_query) {

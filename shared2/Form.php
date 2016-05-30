@@ -71,19 +71,24 @@ class Form {
 							unset($this->info[$key.'_m']);
 							unset($this->info[$key.'_ampm']);
 						}
-						if (!empty($value))
-							$this->info[$key] = date('Y-m-d H:i:00', strtotime($this->info[$key]));
+						
+						if (!empty($value)) {
+							if ($CFG->default_date_format && $CFG->default_date_format[0] != 'n' && $CFG->default_date_format[0] != 'm')
+								$this->info[$key] = date('Y-m-d H:i:00', strtotime(str_replace('/','-',$this->info[$key])));
+							else
+								$this->info[$key] = date('Y-m-d H:i:00', strtotime($this->info[$key]));
+						}
 						else
 							$this->info[$key] = false;
 							
-							if (@array_key_exists($key, $_REQUEST['timefields'])) {
-								$key1 = $_REQUEST['timefields'];
-								if (!empty($this->info[$key1])) {
-									$v1 = date('Y-m-d', strtotime($this->info[$key1]));
-									$v2 = date('H:i:00', strtotime($this->info[$key]));
-									$this->info[$key] = date('Y-m-d H:i:00', strtotime($v1.' '.$v2));
-								}
+						if (@array_key_exists($key, $_REQUEST['timefields'])) {
+							$key1 = $_REQUEST['timefields'];
+							if (!empty($this->info[$key1])) {
+								$v1 = date('Y-m-d', strtotime($this->info[$key1]));
+								$v2 = date('H:i:00', strtotime($this->info[$key]));
+								$this->info[$key] = date('Y-m-d H:i:00', strtotime($v1.' '.$v2));
 							}
+						}
 					}
 				}
 			}
@@ -866,7 +871,7 @@ class Form {
 		}
 		else if ($subtable) {
 			$db_output = DB::getSubTable($subtable,$subtable_fields,$subtable_f_id,false,$f_id_field);
-			if (in_array('p_id',$subtable_fields))
+			if (is_array($subtable_fields) && in_array('p_id',$subtable_fields))
 				$db_output = DB::sortCats($db_output,0,1,$level);
 
 			if ($db_output) {
@@ -1217,6 +1222,8 @@ class Form {
 			if ($this->table) {
 				if (!$multiple || $list_field_values)
 					$this->db_fields[$name] = (!$subtable || $list_field_values) ? 'vchar' : 'int';
+				elseif ($multiple)
+					$this->db_fields[$name] = 'autocomplete-multi';
 				elseif ($options_array_is_subtable)
 					$this->db_fields[$name] = 'vchar';
 				else
@@ -1252,20 +1259,51 @@ class Form {
 			$selected_index = ($options_array_is_subtable) ? $value : $selected_index;
 		}
 		else {
-			$value1 = (is_array(@unserialize($value))) ? @unserialize($value) : $value;
-			if (is_array($value1)) {
-				$selected_index = implode(', ',$value1);
-				$tokenizer_values = $value1;
-				unset($value);
-				
-				$value2 = array();
-				foreach ($value1 as $k => $v) {
-					$value2[] = $k.'|'.$v;
+			if (!$is_tokenizer || strstr($value,'array:')) {
+				if (strstr($value,'array:')) {
+					$value1 = (is_array(@unserialize($value))) ? @unserialize($value) : $value;
+					if (is_array($value1)) {
+						$selected_index = implode(', ',$value1);
+						$tokenizer_values = $value1;
+						unset($value);
+						
+						$value2 = array();
+						foreach ($value1 as $k => $v) {
+							$value2[] = $k.'|'.$v;
+						}
+						$value = 'array:'.implode('|||',$value2);
+					}
+					elseif (strlen($value1) > 0) {
+						$tokenizer_values = String::unFaux($value1);
+					}
 				}
-				$value = 'array:'.implode('|||',$value2);
+				else {
+					$values = json_decode(urldecode($value),true);
+					$selected_index = implode(', ',$values);
+					$tokenizer_values = $values;
+				}
 			}
-			elseif (strlen($value1) > 0) {
-				$tokenizer_values = String::unFaux($value1);
+			else {
+				if ($this->table && $this->record_id) {
+					if (!$value) {
+						$values = DB::getTableValues($this->table.'_'.$name.'_relations',$this->record_id);
+						$values_arr = array();
+						if ($values) {
+							foreach ($values as $val) {
+								$values_arr[$val['value']] = $val['label'];
+							}
+							
+							$selected_index = implode(', ',$values_arr);
+							$value = rawurlencode(json_encode($values_arr));
+							$tokenizer_values = $values_arr;
+						}
+					}
+					else {
+						$values = json_decode(urldecode($value),true);
+						$selected_index = implode(', ',$values);
+						$tokenizer_values = $values;
+					}
+				}
 			}
 		}
 		
@@ -1334,7 +1372,7 @@ class Form {
 			}
 			
 			$HTML .= '
-			$().ready(function() {
+			$(document).ready(function() {
 				$("'.$a_field.'").autocomplete({
 					minChars: 1,
 					autoFocus: true,
@@ -1392,21 +1430,47 @@ class Form {
 					}
 					else {
 						$HTML .= '
-						var value1 = $("#'.$this->name.'_'.$id.$j.'").attr("value").replace("array:","");
-						var value1 = (value1.length > 0) ? "array:" + value1 + "|||" + ui.item.value + "|" + ui.item.label : "array:" + ui.item.value + "|" + ui.item.label;
-						var label1 = $("#'.$this->name.'_'.$id.$j.'_dummy").attr("value");
-						label2 = label1.split(",");
-						label2.pop();
-						label1 = label2.join(",");
-						label1 = ((label1.length > 0) ? label1 + "," : "") + ui.item.label + ",";
-						'.(($is_tokenizer) ? '
-							$("'.$a_field.'").before(\'<div class="token"><span>\'+ui.item.label+\'</span><input type="hidden" id="d0" value="\'+value1+\'"/><div class="x"  onclick="removeThis(this)">x</div></div>\');
-							$("'.$a_field.'").attr("value","");
-							$("#'.$this->name.'_'.$id.$j.'").attr("value",value1);
-						' : '
-							$("#'.$this->name.'_'.$id.$j.'").attr("value",value1);
-							$("#'.$this->name.'_'.$id.$j.'_dummy").attr("value",label1);
-						' ).'
+						var value1 = $("#'.$this->name.'_'.$id.$j.'").attr("value");
+						if (value1.indexOf("array:") >= 0) {
+							value1 = value1.replace("array:","");
+							value1 = (value1.length > 0) ? "array:" + value1 + "|||" + ui.item.value + "|" + ui.item.label : "array:" + ui.item.value + "|" + ui.item.label;
+							var label1 = $("#'.$this->name.'_'.$id.$j.'_dummy").attr("value");
+							label2 = label1.split(",");
+							label2.pop();
+							label1 = label2.join(",");
+							label1 = ((label1.length > 0) ? label1 + "," : "") + ui.item.label + ",";
+							'.(($is_tokenizer) ? '
+								$("'.$a_field.'").before(\'<div class="token"><span>\'+ui.item.label+\'</span><input type="hidden" id="d0" value="\'+value1+\'"/><div class="x"  onclick="removeThis(this)">x</div></div>\');
+								$("'.$a_field.'").attr("value","");
+								$("#'.$this->name.'_'.$id.$j.'").attr("value",value1);
+							' : '
+								$("#'.$this->name.'_'.$id.$j.'").attr("value",value1);
+								$("#'.$this->name.'_'.$id.$j.'_dummy").attr("value",label1);
+							' ).'
+						}
+						else {
+							var is_json = true;
+							try {
+						        JSON.parse(decodeURIComponent(value1));
+						    } catch (e) {
+						        is_json = false;
+						    }
+							
+							var options = (is_json) ? JSON.parse(decodeURIComponent(value1)) : {};
+							options[ui.item.value] = ui.item.label;
+							var values = [];
+							for (i in options)
+								values.push(options[i]);
+								
+							'.(($is_tokenizer) ? '
+								$("'.$a_field.'").before(\'<div class="token"><span>\'+ui.item.label+\'</span><input type="hidden" id="d0" value="\'+ui.item.value+\'"/><div class="x" onclick="removeToken(this)">x</div></div>\');
+								$("'.$a_field.'").val("");
+								$("#'.$this->name.'_'.$id.$j.'").attr("value",encodeURIComponent(JSON.stringify(options)));
+							' : '
+								$("#'.$this->name.'_'.$id.$j.'").attr("value",encodeURIComponent(JSON.stringify(options)));
+								$("#'.$this->name.'_'.$id.$j.'_dummy").attr("value",values.join(","));
+							' ).'
+						}
 						return false;';
 					}
 					$HTML .= '
@@ -1608,7 +1672,7 @@ class Form {
 			$HTML.='$("#'.$this->name.'_'.$id.'").datepicker({ 
 						showAnim: "fadeIn",
 					    showOn: "both", 
-					    buttonImage: "'.$CFG->date_picker_icon.'",
+					    buttonImage: "images/date_picker.gif",
 					    showButtonPanel: true,
 					    defaultDate: new Date('.$value_in.'),
 					    '.(($req_start) ? "minDate: new Date($req_start)," : '').'
@@ -1685,7 +1749,7 @@ class Form {
 			
 			$this->db_fields[$name.'_interval'] = 'vchar';
 		}
-		
+
 		$HTML .= "<input type=\"hidden\" name=\"datefields[$name]\" value=\"$is_filter_range_end\" />";
 		
 		if ($only_time && $link_to)

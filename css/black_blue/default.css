@@ -199,11 +199,11 @@ iframe{}
 .form .file_label{float:left;margin:3px 5px;position:relative;top:1px;width:auto;}
 .form .disabled{color:#666;}
 .form select {font-family: trebuchet MS,tahoma;font-size:13px;background-color:#FFF;border:1px solid #B6B6B6;color:#444;margin-left:255px;padding:4px 3px;width:250px;margin:4px;}
-.form select.time_hour{margin-left:20px;width:43px;}
+.form select.time_hour{width:45px;}
 .form select.interval{margin-left:20px;width:130px;}
 .form select.only{margin-left:4px;}
-.form select.time_minute{margin-left:0;margin-right: 0;width:43px;}
-.form select.time_ampm{margin-left:0;width:46px;}
+.form select.time_minute{margin-left:0;margin-right: 0;width:45px;}
+.form select.time_ampm{margin-left:0;width:50px;}
 .form img{}
 .form ul li a { text-decoration:underline !important; }
 .form b {font-weight:normal;display: block;float: left;left: 0; padding: 10px 0 10px 20px; position: relative; width:180px;background-color: #E9F0F4;}
@@ -237,9 +237,9 @@ iframe{}
 .form textarea {font-family: trebuchet MS,tahoma;font-size:13px;background-color:#FFF;border:1px solid #B6B6B6;color:#444;padding:3px;width:242px;margin:4px;height:100px; }
 .form fieldset { background-color: #f0fcdc; margin: 10px auto auto auto; width: 90%; padding: 5px 0 10px 0;border:1px solid #CEEAA0; }
 .form fieldset legend { font-weight: bold; margin-bottom: 20px; }
-.tokenizer{background-color:#F6F0E4;border:2px solid #D7CCA1;color:#473900;margin-left:255px;padding:0;width:206px;}
+.tokenizer{font-family: trebuchet MS,tahoma;font-size:13px;background-color:#FFF;border:1px solid #B6B6B6;color:#444;padding:5px 3px;width:242px;margin:4px 4px 4px 205px;}
 .tokenizer input{background-color:transparent;border:medium none;margin-left:0;}
-.tokenizer .token{background-color:#766623;color:#FFFFFF;margin:2px 3px;padding:3px;position:relative;}
+.tokenizer .token{background:#aaa url("grid_head.png") repeat scroll 0 0;color:#444;margin:0 0 2px;padding:3px;position:relative;border-color: #d5d5d5 #aaa #aaa #d5d5d5;border-style: solid;border-width: 1px;}
 .tokenizer .token .x{position:absolute;right:4px;top:2px;cursor:pointer;}
 .checkbox{margin: 11px 0 0 8px;padding: 0;width: auto;} 
 .ui-autocomplete{background-color:#FFF;border:1px solid #000;color:#000;padding:0;}
