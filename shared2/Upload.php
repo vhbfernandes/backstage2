@@ -48,32 +48,37 @@ class Upload {
 			$image_sizes = DB::getImageSizes($field_name);
 			
 			if ($id) {
-				$ext1 = (in_array($ext,$CFG->accepted_image_formats)) ? 'jpg' : $ext;
+				$ext1 = $ext;
 				$i = DB::insert($table.'_files',array('f_id'=>$id,'ext'=>$ext1,'dir'=>$dir1,'old_name'=>$temp_name1,'field_name'=>$field_name));
 				self::saveDescriptions($table,$field_name_n,$i);
 				
 				if (in_array($ext,$CFG->accepted_image_formats)) {
-					$ir = new ImageResize($temp_name,false,false,false);
+					$factory = new \ImageOptimizer\OptimizerFactory(array('ignore_errors'=>false,'jpegoptim_options'=>array('--strip-all', '--all-progressive','--max=75')),$logger);
+					$optimizer = $factory->get('jpegoptim');
 					
+					$ir = new ImageResize($temp_name,false,false,false);
+					$ir->setHighQuality();
 					if ($_REQUEST['crop_images'][$field_name])
 						$ir->setAutoCrop(true);
 					
-					$ir->setHighQuality();
-					
 					if (!is_array($img_sizes)) {
-						$ir->save($dir.$table.'_'.$id.'_'.$i.'.'.$ext1,'jpeg',90);
+						$ir->save($dir.$table.'_'.$id.'_'.$i.'.'.$ext1,$ext1,100);
+						$optimizer->optimize($dir.$table.'_'.$id.'_'.$i.'.'.$ext1);
+						
 						if ($_REQUEST['encrypt_files'][$field_name])
 							File::encrypt($dir.$table.'_'.$id.'_'.$i.'.'.$ext1);
 					}
 					else {
 						foreach ($image_sizes as $key => $size) {
 							$ir->setSize($size['width'],$size['height']);
-							$ir->save($dir.$table.'_'.$id.'_'.$i.'_'.$key.'.'.$ext1,'jpeg',90);
+							$ir->save($dir.$table.'_'.$id.'_'.$i.'_'.$key.'.'.$ext1,'jpeg',100);
+							$optimizer->optimize($dir.$table.'_'.$id.'_'.$i.'_'.$key.'.'.$ext1);
 							if ($_REQUEST['encrypt_files'][$field_name])
 								File::encrypt($dir.$table.'_'.$id.'_'.$i.'_'.$key.'.'.$ext1);
 						}
 					}
-					@unlink($temp_name);
+					
+					unlink($temp_name);
 					return true;
 				}
 				else {
@@ -86,7 +91,7 @@ class Upload {
 				}
 			}
 			else {
-				if (@rename($temp_name,$dir.$temp_name)) {
+				if (rename($temp_name,$dir.$temp_name)) {
 					if ($_REQUEST['encrypt_files'][$field_name])
 						File::encrypt($dir.$dir.$temp_name);
 						

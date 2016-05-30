@@ -1326,7 +1326,7 @@ class Form {
 				var '.$id.'_data = [';
 				if (is_array($options_array)) {
 					foreach ($options_array as $option => $option_name) {
-						$HTML .= '{value:"'.$option.'",label:"'.$option_name.'"},';
+						$HTML .= '{value:"'.$option.'",label:"'.str_replace('"','\"',str_replace(array("\r", "\n"),' ',strip_tags($option_name))).'"},';
 					}
 				}
 				$HTML = substr($HTML,0,-1);
