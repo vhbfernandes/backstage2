@@ -973,7 +973,7 @@ class DB {
 					}
 						
 					foreach ($values as $k => $v) {
-						db_insert($table.'_'.$f_name.'_relations',array('f_id'=>$insert_id,'value'=>$k,'label'=>$v),false,false,false,false,false,true);
+						db_insert($table.'_'.$f_name.'_relations',array('f_id'=>$id,'value'=>$k,'label'=>$v),false,false,false,false,false,true);
 					}
 				}
 			}
