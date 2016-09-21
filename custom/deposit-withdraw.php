@@ -9,40 +9,69 @@ if (is_array($CFG->temp_files)) {
 	$transactions = 0;
 	$cancelled = 0;
 	
+	$currencies = array();
+	$sql = 'SELECT * FROM currencies';
+	$result = db_query_array($sql);
+	foreach ($result as $row) {
+		$currencies[$row['currency']] = $row;
+		$currencies[$row['id']] = $row;
+	}
+	
+	// CSV -> each row should be:  bank_id_number (any unique number), user_number, amount, currency (Ex. USD or EUR), bank_account_number (optional)
+	
 	if (($handle = fopen($CFG->dirroot.$CFG->temp_file_location.$CFG->temp_files[$key], "r")) !== FALSE) {
 	    db_start_transaction();
 		while (($data = fgetcsv($handle, 1000, ";",'"')) !== FALSE) {
-			if (!($data[0] > 0) || !strstr($data[4],'INV'))
+			if (!($data[0] > 0))
 				continue;
+			
+			if (substr_count($data[0],',') > 1) {
+				$data = explode(',',$data[0]);
+			}
 			
 			$sql = 'SELECT id FROM requests WHERE crypto_id = '.$data[0];
 			$result = db_query_array($sql);
-			
-			if ($result || !($data[8] > 0))
+			if ($result)
 				continue;
 			
-			$sql = 'SELECT site_users_balances.id AS balance_id, bank_accounts.site_user, bank_accounts.currency AS currency_id, currencies.currency AS currency, site_users.'.strtolower($data[6]).' AS cur_balance, site_users.notify_deposit_bank AS notify_deposit_bank, site_users.first_name AS first_name, site_users.last_name AS last_name, site_users.email AS email, site_users.last_lang AS last_lang FROM bank_accounts LEFT JOIN currencies ON (currencies.id = bank_accounts.currency) LEFT JOIN site_users ON (bank_accounts.site_user = site_users.id) LEFT JOIN site_users_balances ON (site_users_balances.site_user = site_users.id AND site_users_balances.currency = bank_accounts.currency) WHERE bank_accounts.account_number = '.$data[2].' FOR UPDATE';
+			if (!empty($currencies[strtoupper($data[3])]))
+				$currency_info = $currencies[strtoupper($data[3])];
+			else
+				continue;
+			
+			$sql = 'SELECT site_users_balances.id AS balance_id, site_users.id AS site_user, site_users_balances.balance AS cur_balance, site_users.notify_deposit_bank AS notify_deposit_bank, site_users.first_name AS first_name, site_users.last_name AS last_name, site_users.email AS email, site_users.last_lang AS last_lang FROM site_users LEFT JOIN site_users_balances ON (site_users_balances.site_user = site_users.id AND site_users_balances.currency = '.$currency_info['id'].') WHERE site_users.user = '.$data[1].' FOR UPDATE';
 			$result = db_query_array($sql);
 
-			if ($result[0]['currency'] == $data[6] && $result[0]['balance_id'] > 0) {
-				$insert_id = db_insert('requests',array('date'=>date('Y-m-d H:i:s'),'site_user'=>$result[0]['site_user'],'currency'=>$result[0]['currency_id'],'amount'=>$data[8],'description'=>$CFG->deposit_fiat_desc,'request_type'=>$CFG->request_deposit_id,'request_status'=>$CFG->request_completed_id,'account'=>$data[2],'crypto_id'=>$data[0]));
-				db_insert('history',array('date'=>date('Y-m-d H:i:s'),'history_action'=>4,'site_user'=>$result[0]['site_user'],'request_id'=>$insert_id,'balance_before'=>$result[0]['cur_balance'],'balance_after'=>($result[0]['cur_balance'] + $data[8])));
-				db_update('site_users_balances',$result[0]['balance_id'],array(strtolower($data[6])=>($result[0]['cur_balance'] + $data[8])));
-
+			if ($result) {
+				$balance_record = false;
+				if ($result[0]['balance_id'] > 0)
+					$balance_record = DB::getRecord('site_users_balances',$result[0]['balance_id'],0,1);
+				
+				if ($balance_record)
+					db_update('site_users_balances',$result[0]['balance_id'],array('balance'=>(number_format($result[0]['cur_balance'] + $data[2]))));
+				else {
+					$balance_id = db_insert('site_users_balances',array('balance'=>(number_format($data[2])),'site_user'=>$result[0]['site_user'],'currency'=>$currency_info['id']));
+					$balance_record = DB::getRecord('site_users_balances',$balance_id,0,1);
+					$result[0]['balance_id'] = $balance_record['id'];
+					$result[0]['cur_balance'] = 0;
+				}	
+					
+				$insert_id = db_insert('requests',array('date'=>date('Y-m-d H:i:s'),'site_user'=>$result[0]['site_user'],'currency'=>$currency_info['id'],'amount'=>number_format($data[2],2,'.',''),'description'=>$CFG->deposit_fiat_desc,'request_type'=>$CFG->request_deposit_id,'request_status'=>$CFG->request_completed_id,'account'=>$data[4],'crypto_id'=>$data[0]));
+				db_insert('history',array('date'=>date('Y-m-d H:i:s'),'history_action'=>4,'site_user'=>$result[0]['site_user'],'request_id'=>$insert_id,'balance_before'=>$result[0]['cur_balance'],'balance_after'=>($result[0]['cur_balance'] + $data[2])));
+				
 				if ($result[0]['notify_deposit_bank'] == 'Y') {
-				    $result[0]['amount'] = number_format($data[8],2);
+				    $result[0]['amount'] = number_format($data[2],2,'.','');
 				    $result[0]['id'] = $insert_id;
 				    $CFG->language = ($result[0]['last_lang']) ? $result[0]['last_lang'] : 'en';
 
 				    $email = SiteEmail::getRecord('new-deposit');
-				    Email::send($CFG->form_email,$result[0]['email'],str_replace('[amount]',number_format($data[8],2),str_replace('[currency]',$result[0]['currency'],$email['title'])),$CFG->form_email_from,false,$email['content'],$result[0]);
+				    Email::send($CFG->form_email,$result[0]['email'],str_replace('[amount]',number_format($data[2],2),str_replace('[currency]',$currency_info['currency'],$email['title'])),$CFG->form_email_from,false,$email['content'],$result[0]);
 				}
 				
 				$transactions++;
 			}
 			else {
-				$currency_info = DB::getRecord('currencies',false,$data[6],false,'currency');
-				$insert_id = db_insert('requests',array('date'=>date('Y-m-d H:i:s'),'site_user'=>$result[0]['site_user'],'currency'=>$currency_info['id'],'amount'=>$data[8],'description'=>$CFG->deposit_fiat_desc,'request_type'=>$CFG->request_deposit_id,'request_status'=>$CFG->request_cancelled_id,'account'=>$data[2],'crypto_id'=>$data[0]));
+				$insert_id = db_insert('requests',array('date'=>date('Y-m-d H:i:s'),'site_user'=>$result[0]['site_user'],'currency'=>$currency_info['id'],'amount'=>number_format($data[2],2,'.',''),'description'=>$CFG->deposit_fiat_desc,'request_type'=>$CFG->request_deposit_id,'request_status'=>$CFG->request_cancelled_id,'account'=>$data[4],'crypto_id'=>$data[0]));
 				$cancelled++;
 			}
 		}
@@ -67,7 +96,7 @@ $upload->display();
 
 
 
-
+/*
 $CFG->form_legend = 'Export Fiat Withdrawals';
 $download = new Form('withadrawals',false,false,'form1');
 $download->verify();
@@ -160,7 +189,7 @@ $withdraw->textInput('amount','Amount',1);
 $withdraw->submitButton('Withdraw','Withdraw');
 $withdraw->display();
 
-
+*/
 
 
 ?>
