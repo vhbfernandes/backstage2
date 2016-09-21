@@ -815,7 +815,9 @@ class Grid {
 						if ($CFG->pm_editor)
 							$method_name = Form::peLabel($value['method_id'],'inlineForm');
 							
-						$HTML .= "<th class=\"multiple_input\">".$value['header_caption'].$method_name.'</th>';
+						if ($value['header_caption'])
+							$HTML .= "<th class=\"multiple_input\">".$value['header_caption'].$method_name.'</th>';
+						
 						continue;
 					}
 
@@ -907,6 +909,9 @@ class Grid {
 							$HTML .= $value1;
 						}
 						elseif ($properties['is_form']) {
+							if (!$properties['header_caption'])
+								continue;
+							
 							$HTML .= '<div>';
 							
 							if (!$ref) {
@@ -1279,7 +1284,6 @@ class Grid {
 		echo $HTML;
 		
 		if ($this->rows_per_page > 30) echo $pagination;
-		
 		if ($CFG->backstage_mode && (User::permission(0,0,$this->link_url,false,$this->is_tab) > 1) && $this->inset_id === false) {
 			echo "</form>";
 		}

@@ -155,17 +155,19 @@ function db_query_array($query, $key = '', $first_record = false, $unbuffered = 
 		return false;
 }
 
-function db_insert($table, $info, $date = '', $ignore = false, $silent = false, $echo_sql = false, $return_bool = false, $delayed = false) {
+function db_insert($table, $info, $date = '', $ignore = false, $silent = false, $echo_sql = false, $return_bool = false, $delayed = false,$duplicate_key_update=false) {
 	
 	$ignore = ($ignore) ? 'IGNORE' : '';
 	$delayed = ($delayed) ? 'DELAYED' : '';
 	
 	$sql = "INSERT $delayed $ignore INTO $table (";
 	$vals = ") VALUES (";
+	$duplicates = array();
 	
 	foreach ( $info as $key => $val ) {
 		$sql .= "`$key`,";
 		$vals .= "'" . addslashes ( $val ) . "',";
+		$duplicates[] = "`$key` = VALUES(`$key`) ";
 	}
 	
 	if ($date) {
@@ -177,6 +179,10 @@ function db_insert($table, $info, $date = '', $ignore = false, $silent = false, 
 	$sql = substr ( $sql, 0, - 1 );
 	$vals = substr ( $vals, 0, - 1 );
 	$sql .= "$vals)";
+	
+	if ($duplicate_key_update)
+		$sql .= ' ON DUPLICATE KEY UPDATE '.implode(',',$duplicates).' ';
+	
 	if (! $silent) {
 		$return_val = db_query ( $sql );
 	} else {

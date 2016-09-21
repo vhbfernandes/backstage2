@@ -71,19 +71,24 @@ class Form {
 							unset($this->info[$key.'_m']);
 							unset($this->info[$key.'_ampm']);
 						}
-						if (!empty($value))
-							$this->info[$key] = date('Y-m-d H:i:00', strtotime($this->info[$key]));
+						
+						if (!empty($value)) {
+							if ($CFG->default_date_format && $CFG->default_date_format[0] != 'n' && $CFG->default_date_format[0] != 'm')
+								$this->info[$key] = date('Y-m-d H:i:00', strtotime(str_replace('/','-',$this->info[$key])));
+							else
+								$this->info[$key] = date('Y-m-d H:i:00', strtotime($this->info[$key]));
+						}
 						else
 							$this->info[$key] = false;
 							
-							if (@array_key_exists($key, $_REQUEST['timefields'])) {
-								$key1 = $_REQUEST['timefields'];
-								if (!empty($this->info[$key1])) {
-									$v1 = date('Y-m-d', strtotime($this->info[$key1]));
-									$v2 = date('H:i:00', strtotime($this->info[$key]));
-									$this->info[$key] = date('Y-m-d H:i:00', strtotime($v1.' '.$v2));
-								}
+						if (@array_key_exists($key, $_REQUEST['timefields'])) {
+							$key1 = $_REQUEST['timefields'];
+							if (!empty($this->info[$key1])) {
+								$v1 = date('Y-m-d', strtotime($this->info[$key1]));
+								$v2 = date('H:i:00', strtotime($this->info[$key]));
+								$this->info[$key] = date('Y-m-d H:i:00', strtotime($v1.' '.$v2));
 							}
+						}
 					}
 				}
 			}
@@ -866,7 +871,7 @@ class Form {
 		}
 		else if ($subtable) {
 			$db_output = DB::getSubTable($subtable,$subtable_fields,$subtable_f_id,false,$f_id_field);
-			if (in_array('p_id',$subtable_fields))
+			if (is_array($subtable_fields) && in_array('p_id',$subtable_fields))
 				$db_output = DB::sortCats($db_output,0,1,$level);
 
 			if ($db_output) {
@@ -1254,21 +1259,28 @@ class Form {
 			$selected_index = ($options_array_is_subtable) ? $value : $selected_index;
 		}
 		else {
-			if ($value && strstr($value,'array:')) {
-				$value1 = (is_array(@unserialize($value))) ? @unserialize($value) : $value;
-				if (is_array($value1)) {
-					$selected_index = implode(', ',$value1);
-					$tokenizer_values = $value1;
-					unset($value);
-					
-					$value2 = array();
-					foreach ($value1 as $k => $v) {
-						$value2[] = $k.'|'.$v;
+			if (!$is_tokenizer || strstr($value,'array:')) {
+				if (strstr($value,'array:')) {
+					$value1 = (is_array(@unserialize($value))) ? @unserialize($value) : $value;
+					if (is_array($value1)) {
+						$selected_index = implode(', ',$value1);
+						$tokenizer_values = $value1;
+						unset($value);
+						
+						$value2 = array();
+						foreach ($value1 as $k => $v) {
+							$value2[] = $k.'|'.$v;
+						}
+						$value = 'array:'.implode('|||',$value2);
 					}
-					$value = 'array:'.implode('|||',$value2);
+					elseif (strlen($value1) > 0) {
+						$tokenizer_values = String::unFaux($value1);
+					}
 				}
-				elseif (strlen($value1) > 0) {
-					$tokenizer_values = String::unFaux($value1);
+				else {
+					$values = json_decode(urldecode($value),true);
+					$selected_index = implode(', ',$values);
+					$tokenizer_values = $values;
 				}
 			}
 			else {
@@ -1352,7 +1364,7 @@ class Form {
 				var '.$id.'_data = [';
 				if (is_array($options_array)) {
 					foreach ($options_array as $option => $option_name) {
-						$HTML .= '{value:"'.$option.'",label:"'.$option_name.'"},';
+						$HTML .= '{value:"'.$option.'",label:"'.str_replace('"','\"',str_replace(array("\r", "\n"),' ',strip_tags($option_name))).'"},';
 					}
 				}
 				$HTML = substr($HTML,0,-1);
@@ -1360,7 +1372,7 @@ class Form {
 			}
 			
 			$HTML .= '
-			$().ready(function() {
+			$(document).ready(function() {
 				$("'.$a_field.'").autocomplete({
 					minChars: 1,
 					autoFocus: true,
@@ -1660,7 +1672,7 @@ class Form {
 			$HTML.='$("#'.$this->name.'_'.$id.'").datepicker({ 
 						showAnim: "fadeIn",
 					    showOn: "both", 
-					    buttonImage: "'.$CFG->date_picker_icon.'",
+					    buttonImage: "images/date_picker.gif",
 					    showButtonPanel: true,
 					    defaultDate: new Date('.$value_in.'),
 					    '.(($req_start) ? "minDate: new Date($req_start)," : '').'
@@ -1737,7 +1749,7 @@ class Form {
 			
 			$this->db_fields[$name.'_interval'] = 'vchar';
 		}
-		
+
 		$HTML .= "<input type=\"hidden\" name=\"datefields[$name]\" value=\"$is_filter_range_end\" />";
 		
 		if ($only_time && $link_to)

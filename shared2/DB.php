@@ -141,6 +141,9 @@ class DB {
 					}
 				}
 				elseif ($has_subtable || $has_table) {
+					if (!is_array($field['subtable_fields']) && is_array(json_decode(urldecode($field['subtable_fields']),true)))
+						$field['subtable_fields'] = json_decode(urldecode($field['subtable_fields']),true);
+
 					$subtable_fields = (!is_array($field['subtable_fields']) && !empty($field['subtable_fields'])) ? array($field['subtable_fields']) : $field['subtable_fields'];
 					$concat_char = (!empty($field['subtable_fields_concat'])) ? $field['subtable_fields_concat'] : ' ';
 					$concat_char = (!$subtable_fields) ? '|||' : $concat_char;
@@ -878,7 +881,7 @@ class DB {
 					}
 					
 					foreach ($values as $k => $v) {
-						db_insert($table.'_'.$f_name.'_relations',array('f_id'=>$insert_id,'value'=>$k,'label'=>$v));
+						db_insert($table.'_'.$f_name.'_relations',array('f_id'=>$insert_id,'value'=>$k,'label'=>$v),false,false,false,false,false,true);
 					}
 				}	
 			}
@@ -970,7 +973,7 @@ class DB {
 					}
 						
 					foreach ($values as $k => $v) {
-						db_insert($table.'_'.$f_name.'_relations',array('f_id'=>$id,'value'=>$k,'label'=>$v));
+						db_insert($table.'_'.$f_name.'_relations',array('f_id'=>$id,'value'=>$k,'label'=>$v),false,false,false,false,false,true);
 					}
 				}
 			}
@@ -1229,7 +1232,8 @@ class DB {
 								`f_id` INT( 10 ) UNSIGNED NOT NULL ,
 								`value` VARCHAR( 255 ) NOT NULL,
 								`label` VARCHAR( 255 ) NOT NULL,
-								INDEX ( `f_id`)
+								INDEX ( `f_id`),
+								UNIQUE (`f_id`,`value`)
 								) ENGINE = MYISAM ";
 						break;
 				}
@@ -1391,7 +1395,8 @@ class DB {
 							`f_id` INT( 10 ) UNSIGNED NOT NULL ,
 							`value` VARCHAR( 255 ) NOT NULL,
 							`label` VARCHAR( 255 ) NOT NULL,
-							INDEX ( `f_id`)
+							INDEX (`f_id`),
+							UNIQUE (`f_id`,`value`)
 							) ENGINE = MYISAM ";
 							break;
 					}
@@ -1451,6 +1456,9 @@ class DB {
 	}
 	
 	public static function getSubTable($table, $table_fields=false,$f_id=0,$concat_char=false,$f_id_field=false,$search_term=false) {
+		if (!is_array($table_fields) && is_array(json_decode(urldecode($table_fields),true)))
+			$table_fields = json_decode(urldecode($table_fields),true);
+		
 		$concat_char = ($concat_char) ? $concat_char : ' ';
 		$search_term = mysql_escape_string($search_term);
 		$sql = "SELECT ";

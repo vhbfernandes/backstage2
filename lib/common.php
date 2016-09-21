@@ -1,6 +1,7 @@
 <?php 
 require_once ("cfg.php");
 require_once ("shared2/autoload.php");
+require_once ("vendor/autoload.php");
 
 /* connect to the database */
 db_connect ( $CFG->dbhost, $CFG->dbname, $CFG->dbuser, $CFG->dbpass );

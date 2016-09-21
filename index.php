@@ -10,6 +10,7 @@ $CFG->is_tab = (!$CFG->url) ? 1 : $_REQUEST['is_tab'];
 $CFG->id = ereg_replace("[^0-9]", "",$_REQUEST['id']);
 $CFG->target_elem = ereg_replace("[^a-zA-Z_\-]", "",$_REQUEST['target_elem']);
 $CFG->in_popup = ($CFG->target_elem == 'edit_box' || $CFG->target_elem == 'message_box' || $CFG->target_elem == 'attributes box');
+$CFG->inset_id = false;
 
 $_SESSION['last_query'] = $_SESSION['this_query'];
 $_SESSION['this_query'] = 'index.php?'.http_build_query((is_array($_POST)) ? $_POST : $_GET);
