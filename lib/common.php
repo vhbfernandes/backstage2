@@ -5,7 +5,6 @@ require_once ("vendor/autoload.php");
 
 /* connect to the database */
 db_connect ( $CFG->dbhost, $CFG->dbname, $CFG->dbuser, $CFG->dbpass );
-mysql_set_charset('utf8');
 session_start();
 session_regenerate_id();
 

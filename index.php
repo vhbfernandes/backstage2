@@ -84,7 +84,7 @@ if (User::isLoggedIn() && !(User::$info['verified_authy'] == 'Y' && !($_SESSION[
 <div id="head">
 	<?
 	$logos = DB::getFiles('settings_files',1,'logo',1);
-	$logo_img = ($logos) ? 'uploads/'.$logos[0]['name'].'_logo.png' : 'images/logo.png';
+	$logo_img = ($logos && file_exists('uploads/'.$logos[0]['name'].'_logo.png')) ? 'uploads/'.$logos[0]['name'].'_logo.png' : 'images/logo.png';
 	?>
 	<div class="logo"><img src="<?= $logo_img ?>" /></div>
 	<div class="nav_buttons">

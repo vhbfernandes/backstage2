@@ -1044,7 +1044,7 @@ class DB {
 			return false;
 		
 		$sql = "SELECT 1 FROM {$table} LIMIT 0";
-		if (mysql_query($sql)) {
+		if (db_query($sql,false,true,false,false,true)) {
 			return true;
 		}
 		else {

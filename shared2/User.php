@@ -7,8 +7,8 @@ class User {
 	public static function logIn($user=false,$pass=false,$table=false,$session_name=false) {
 		global $CFG;
 		
-		$user = strip_tags(mysql_real_escape_string($user));
-		$pass = strip_tags(mysql_real_escape_string($pass));
+		$user = (!empty($user)) ? preg_replace('/[^\pL 0-9a-zA-Z!@#$%&*?\.\-\_]/u', "",$user) : false;
+		$user = (!empty($pass)) ? preg_replace('/[^\pL 0-9a-zA-Z!@#$%&*?\.\-\_]/u', "",$pass) : false;
 		$table = ($table) ? $table : 'admin';
 		$session_name = ($session_name) ? $session_name : 'user_info';
 		self::$session_name = $session_name;
