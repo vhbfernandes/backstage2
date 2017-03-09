@@ -1040,7 +1040,7 @@ class DB {
 	}
 	
 	public static function tableExists($table) {
-		if (!$table)
+		if (!$table || is_array($table))
 			return false;
 		
 		$sql = "SELECT 1 FROM {$table} LIMIT 0";

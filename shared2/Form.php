@@ -1207,7 +1207,7 @@ class Form {
 		$outside_jscript = (strstr($jscript,'outside|')) ? '<script type="text/javascript">'.str_replace('outside|','',$jscript).'</script>' : false;
 		$jscript = strstr($jscript,'outside|') ? false : $jscript;
 		$multiple = ($is_tokenizer) ? 1 : $multiple;
-		$options_array_is_subtable = DB::tableExists($options_array);
+		//$options_array_is_subtable = DB::tableExists($options_array);
 		$subtable = ($options_array_is_subtable) ? $options_array : $subtable;
 
 		if ($delete_whitespace)
@@ -1279,8 +1279,11 @@ class Form {
 				}
 				else {
 					$values = json_decode(urldecode($value),true);
-					$selected_index = implode(', ',$values);
-					$tokenizer_values = $values;
+					if (is_array($values)) {
+						$selected_index = implode(', ',$values);
+						$tokenizer_values = $values;
+					}
+					$tokenizer_values = '';
 				}
 			}
 			else {

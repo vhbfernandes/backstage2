@@ -8,7 +8,8 @@ class User {
 		global $CFG;
 		
 		$user = (!empty($user)) ? preg_replace('/[^\pL 0-9a-zA-Z!@#$%&*?\.\-\_]/u', "",$user) : false;
-		$user = (!empty($pass)) ? preg_replace('/[^\pL 0-9a-zA-Z!@#$%&*?\.\-\_]/u', "",$pass) : false;
+		$pass = (!empty($pass)) ? preg_replace('/[^\pL 0-9a-zA-Z!@#$%&*?\.\-\_]/u', "",$pass) : false;
+		
 		$table = ($table) ? $table : 'admin';
 		$session_name = ($session_name) ? $session_name : 'user_info';
 		self::$session_name = $session_name;

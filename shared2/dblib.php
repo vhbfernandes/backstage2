@@ -371,7 +371,7 @@ function db_log_error($e,$query) {
 		$output .= "<pre>".$query."</pre>";
 		$output .= "MySQL Error: ".$e->getMessage();
 		$output .= "Debug: ";
-		$output .= print_r(debug_backtrace (),true);
+		$output .= print_r($e->getTrace(),true);
 		trigger_error($output,E_USER_ERROR);
 	}
 	else {
