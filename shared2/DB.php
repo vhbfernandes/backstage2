@@ -1043,8 +1043,8 @@ class DB {
 		if (!$table || is_array($table))
 			return false;
 		
-		$sql = "SELECT 1 FROM {$table} LIMIT 0";
-		if (db_query($sql,false,true,false,false,true)) {
+		$sql = "SHOW TABLES LIKE '{$table}'";
+		if (db_query_array($sql,false,true,false,false,true)) {
 			return true;
 		}
 		else {
