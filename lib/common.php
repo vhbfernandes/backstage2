@@ -41,4 +41,9 @@ $CFG->request_widthdrawal_id = $CFG->request_withdrawal_id;
 
 User::logIn($_REQUEST['loginform']['user'],$_REQUEST['loginform']['pass']);
 User::logOut($_REQUEST['logout']);
+$file = basename($_SERVER['PHP_SELF']);
+if ($file != "index.php" && !User::isLoggedIn()) {
+   header("Location: /");
+   exit();
+}
 ?>
